@@ -10,21 +10,38 @@ permissions:
   pages: write
   id-token: write
 
+# Never cancel a deployment that is already in flight — a half-published
+# site is worse than a queued one.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run build
+          node-version: 22
+          cache: npm
+
+      # enablement lets the first run turn Pages on and set the source to
+      # Actions, instead of failing in the deploy job.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - run: npm ci
+
+      - run: npm run build
+
+      # Pages serves the uploaded artifact directly, but .nojekyll is cheap
+      # insurance that nothing ever strips the _next/ directory.
+      - run: touch ./out/.nojekyll
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./out
@@ -32,6 +49,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
