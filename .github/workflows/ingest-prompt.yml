@@ -1,0 +1,112 @@
+name: Ingest submitted prompt
+
+# Anyone can open an "Add a prompt" issue, so ingestion is deliberately gated on
+# a maintainer applying the `approved-prompt` label. Without that gate, any
+# stranger could commit arbitrary content into a site you host under your name.
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to ingest
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  # Serialised: two ingests appending to the same file would conflict.
+  group: ingest-prompt
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.label.name == 'approved-prompt'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      committed: ${{ steps.commit.outputs.committed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve issue
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+        run: |
+          body=$(gh issue view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+          {
+            echo "body<<ISSUE_BODY_EOF"
+            echo "$body"
+            echo "ISSUE_BODY_EOF"
+            echo "number=$NUMBER"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build prompt entry
+        id: ingest
+        env:
+          ISSUE_BODY: ${{ steps.issue.outputs.body }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/ingest-issue.mjs
+
+      - name: Validate dataset
+        run: node scripts/validate-data.mjs
+
+      - name: Commit
+        id: commit
+        env:
+          TITLE: ${{ steps.ingest.outputs.title }}
+          NUMBER: ${{ steps.issue.outputs.number }}
+        run: |
+          if git diff --quiet; then
+            echo "Nothing changed."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/prompts.json public/prompts.json
+          git commit -m "Add prompt: $TITLE (#$NUMBER)"
+          git push origin main
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Report on the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ steps.issue.outputs.number }}
+          SUMMARY: ${{ steps.ingest.outputs.summary }}
+        run: |
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body "$SUMMARY"
+          gh issue close "$NUMBER" --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Report failure on the issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ steps.issue.outputs.number }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue comment "$NUMBER" --repo "$GITHUB_REPOSITORY" \
+            --body "Could not add this prompt automatically. See the [workflow run]($RUN) for the reason. Fix the issue body and re-apply the \`approved-prompt\` label to retry."
+
+  # A push made with GITHUB_TOKEN does not start another workflow, so the deploy
+  # has to be invoked here rather than left to the push trigger.
+  deploy:
+    needs: ingest
+    if: needs.ingest.outputs.committed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-pages.yml

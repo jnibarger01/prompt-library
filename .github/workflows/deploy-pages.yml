@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Callable so ingest-prompt.yml can publish straight after committing. A push
+  # made with GITHUB_TOKEN does not start another workflow, so the ingest job
+  # has to invoke the deploy itself rather than rely on its own commit.
+  workflow_call:
 
 permissions:
   contents: read

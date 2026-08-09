@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "validate": "node scripts/validate-data.mjs",
+    "train": "node scripts/train-categorizer.mjs"
   },
   "dependencies": {
     "next": "16.2.11",
