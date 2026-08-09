@@ -138,7 +138,10 @@ function setOutput(name, value) {
 }
 
 async function main() {
-  const fields = parseIssueForm(process.env.ISSUE_BODY);
+  const issueBody = process.env.ISSUE_BODY_PATH
+    ? fs.readFileSync(process.env.ISSUE_BODY_PATH, "utf8")
+    : process.env.ISSUE_BODY;
+  const fields = parseIssueForm(issueBody);
 
   const title = (fields.title || "").slice(0, MAX_TITLE).trim();
   const body = (fields.prompt || "").trim();
