@@ -39,24 +39,26 @@ jobs:
         with:
           node-version: 22
 
-      - name: Resolve issue
+      - name: Capture approved issue snapshot
         id: issue
         env:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BODY: ${{ github.event.issue.body }}
         run: |
-          body=$(gh issue view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
-          {
-            echo "body<<ISSUE_BODY_EOF"
-            echo "$body"
-            echo "ISSUE_BODY_EOF"
-            echo "number=$NUMBER"
-          } >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "issues" ]; then
+            body="$EVENT_BODY"
+          else
+            body=$(gh issue view "$NUMBER" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+          fi
+          printf '%s' "$body" > "$RUNNER_TEMP/issue-body.md"
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Build prompt entry
         id: ingest
         env:
-          ISSUE_BODY: ${{ steps.issue.outputs.body }}
+          ISSUE_BODY_PATH: ${{ runner.temp }}/issue-body.md
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/ingest-issue.mjs
 
