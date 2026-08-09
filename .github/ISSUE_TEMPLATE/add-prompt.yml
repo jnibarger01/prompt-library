@@ -1,0 +1,52 @@
+name: Add a prompt
+description: Submit a prompt for the shared library
+title: "Add prompt: "
+labels: ["add-prompt"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Submitting this opens a normal issue. A maintainer reviews it and adds
+        the `approved-prompt` label, which is what actually adds it to the
+        library and redeploys the site.
+
+        The "Publish" button in the app fills this form in for you.
+
+  - type: input
+    id: prompt-title
+    attributes:
+      label: Title
+      description: Short and specific — this is what people scan.
+      placeholder: Rust Borrow Checker Explainer
+    validations:
+      required: true
+
+  - type: textarea
+    id: prompt-body
+    attributes:
+      label: Prompt
+      description: The prompt itself. Use `${placeholders}` for anything the user fills in.
+    validations:
+      required: true
+
+  - type: input
+    id: prompt-category
+    attributes:
+      label: Category
+      description: >
+        Leave blank to have it categorised automatically. One of: Business,
+        Data & Research, Design & Image, Development, Education, Finance,
+        Games & Entertainment, Health & Wellness, Marketing & Social, Other,
+        Productivity, Security & IT, Travel & Lifestyle, Writing.
+      placeholder: Development
+    validations:
+      required: false
+
+  - type: input
+    id: prompt-tags
+    attributes:
+      label: Tags
+      description: Optional, comma separated.
+      placeholder: rust, ownership
+    validations:
+      required: false

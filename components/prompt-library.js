@@ -1,7 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getPromptById, searchPrompts } from "@/lib/client-store";
+import {
+  addUserPrompt,
+  deleteUserPrompt,
+  getCategoryCounts,
+  getPromptById,
+  searchPrompts,
+  updateUserPrompt,
+} from "@/lib/client-store";
+import { buildFallbackText, openIssueForm } from "@/lib/publish";
+import AddPromptDialog from "@/components/add-prompt-dialog";
 
 const PAGE_SIZE = 24;
 const FAVORITES_KEY = "prompt-foundry:favorites";
@@ -30,6 +39,10 @@ function Icon({ name, size = 18 }) {
     arrow: <><path d="M5 12h14M13 6l6 6-6 6" /></>,
     spark: <><path d="m12 3-1.4 4.1a5 5 0 0 1-3.1 3.1L3.5 12l4 1.8a5 5 0 0 1 3.1 3.1L12 21l1.4-4.1a5 5 0 0 1 3.1-3.1l4-1.8-4-1.8a5 5 0 0 1-3.1-3.1L12 3Z" /></>,
     check: <path d="m5 12 4 4L19 6" />,
+    plus: <><path d="M12 5v14M5 12h14" /></>,
+    pencil: <><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17v3Z" /><path d="M14.5 6.5 17.5 9.5" /></>,
+    trash: <><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13h10l1-13" /></>,
+    upload: <><path d="M12 19V6M6 12l6-6 6 6" /><path d="M5 21h14" /></>,
   };
 
   return <svg {...common}>{paths[name]}</svg>;
@@ -79,12 +92,19 @@ export default function PromptLibrary({ meta }) {
   const [selectedPrompt, setSelectedPrompt] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [toast, setToast] = useState("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  // Counts start from the build-time meta and are replaced once the corpus and
+  // any locally added prompts have loaded.
+  const [liveMeta, setLiveMeta] = useState(meta);
+  // Bumped whenever local prompts change, to re-run the active search.
+  const [revision, setRevision] = useState(0);
   const searchRef = useRef(null);
 
   const favoriteIds = useMemo(() => [...favorites].join(","), [favorites]);
   const categories = useMemo(
-    () => [{ name: "All", count: meta.total }, ...meta.categories],
-    [meta],
+    () => [{ name: "All", count: liveMeta.total }, ...liveMeta.categories],
+    [liveMeta],
   );
 
   useEffect(() => {
@@ -110,7 +130,20 @@ export default function PromptLibrary({ meta }) {
   useEffect(() => {
     setPage(1);
     setItems([]);
-  }, [debouncedQuery, category, sort, favoritesOnly, favoritesOnly ? favoriteIds : ""]);
+  }, [debouncedQuery, category, sort, favoritesOnly, favoritesOnly ? favoriteIds : "", revision]);
+
+  // Recount categories once the corpus is available and after every local edit.
+  useEffect(() => {
+    let cancelled = false;
+    getCategoryCounts()
+      .then((next) => {
+        if (!cancelled) setLiveMeta(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [revision]);
 
   useEffect(() => {
     function handleShortcut(event) {
@@ -169,7 +202,7 @@ export default function PromptLibrary({ meta }) {
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, category, sort, page, favoritesOnly, favoriteIds, favoritesReady]);
+  }, [debouncedQuery, category, sort, page, favoritesOnly, favoriteIds, favoritesReady, revision]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -243,6 +276,48 @@ export default function PromptLibrary({ meta }) {
     setFavoritesOnly(false);
   };
 
+  const handleSavePrompt = useCallback(
+    async (values) => {
+      if (editing) {
+        updateUserPrompt(editing.id, values);
+        setToast("Prompt updated");
+      } else {
+        await addUserPrompt(values);
+        setToast("Prompt added to your library");
+      }
+      setDialogOpen(false);
+      setEditing(null);
+      setSelectedId(null);
+      setRevision((value) => value + 1);
+    },
+    [editing],
+  );
+
+  const handleDeletePrompt = useCallback((prompt) => {
+    if (!window.confirm(`Delete “${prompt.title}”? This only removes your local copy.`)) return;
+    deleteUserPrompt(prompt.id);
+    setSelectedId(null);
+    setToast("Prompt deleted");
+    setRevision((value) => value + 1);
+  }, []);
+
+  const handlePublish = useCallback(async (prompt) => {
+    const result = openIssueForm(prompt);
+    if (result.ok) {
+      setToast("Opened GitHub — submit the issue to publish");
+      return;
+    }
+
+    // Too long to carry in a URL; hand it over via the clipboard instead.
+    try {
+      await copyText(buildFallbackText(prompt));
+      window.open(result.url, "_blank", "noopener,noreferrer");
+      setToast("Prompt copied — paste it into the form");
+    } catch {
+      setToast("Prompt is too long to publish automatically");
+    }
+  }, []);
+
   const variables = detectVariables(selectedPrompt?.prompt);
 
   return (
@@ -253,6 +328,17 @@ export default function PromptLibrary({ meta }) {
           <span>Prompt Foundry</span>
         </a>
         <div className="header-actions">
+          <button
+            className="header-button primary"
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setDialogOpen(true);
+            }}
+          >
+            <Icon name="plus" size={17} />
+            <span>Add prompt</span>
+          </button>
           <button
             className={`header-button ${favoritesOnly ? "active" : ""}`}
             type="button"
@@ -279,13 +365,13 @@ export default function PromptLibrary({ meta }) {
           <p className="eyebrow">A searchable prompt arsenal</p>
           <h1>Stop digging. Find the right prompt.</h1>
           <p className="hero-subtitle">
-            Browse {formatNumber(meta.total)} ready-to-use prompts across development, design,
+            Browse {formatNumber(liveMeta.total)} ready-to-use prompts across development, design,
             business, research, writing, and more.
           </p>
         </div>
         <aside className="stats-panel" aria-label="Library statistics">
-          <div><strong>{formatNumber(meta.total)}</strong><span>prompts</span></div>
-          <div><strong>{meta.categories.length}</strong><span>categories</span></div>
+          <div><strong>{formatNumber(liveMeta.total)}</strong><span>prompts</span></div>
+          <div><strong>{liveMeta.categories.length}</strong><span>categories</span></div>
           <div><strong>1 click</strong><span>to copy</span></div>
         </aside>
       </section>
@@ -349,7 +435,10 @@ export default function PromptLibrary({ meta }) {
             return (
               <article className="prompt-card" key={prompt.id}>
                 <div className="card-topline">
-                  <span className="category-label">{prompt.category}</span>
+                  <span className="category-label">
+                    {prompt.category}
+                    {prompt.source === "user" && <em className="mine-badge">yours</em>}
+                  </span>
                   <button
                     type="button"
                     className={`icon-button ${saved ? "saved" : ""}`}
@@ -455,7 +544,37 @@ export default function PromptLibrary({ meta }) {
 
                 <pre className="prompt-content">{selectedPrompt.prompt}</pre>
                 <footer className="modal-footer">
-                  <button className="secondary-button" type="button" onClick={() => setSelectedId(null)}>Close</button>
+                  {selectedPrompt.source === "user" ? (
+                    <div className="owner-actions">
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => {
+                          setEditing(selectedPrompt);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Icon name="pencil" size={16} /> Edit
+                      </button>
+                      <button
+                        className="secondary-button danger"
+                        type="button"
+                        onClick={() => handleDeletePrompt(selectedPrompt)}
+                      >
+                        <Icon name="trash" size={16} /> Delete
+                      </button>
+                      <button
+                        className="secondary-button"
+                        type="button"
+                        onClick={() => handlePublish(selectedPrompt)}
+                        title="Submit this prompt to the shared library via GitHub"
+                      >
+                        <Icon name="upload" size={16} /> Publish
+                      </button>
+                    </div>
+                  ) : (
+                    <button className="secondary-button" type="button" onClick={() => setSelectedId(null)}>Close</button>
+                  )}
                   <button className="primary-button" type="button" onClick={() => handleCopy(selectedPrompt.prompt)}>
                     <Icon name="copy" size={17} /> Copy full prompt
                   </button>
@@ -465,6 +584,16 @@ export default function PromptLibrary({ meta }) {
           </section>
         </div>
       )}
+
+      <AddPromptDialog
+        open={dialogOpen}
+        initialValue={editing}
+        onCancel={() => {
+          setDialogOpen(false);
+          setEditing(null);
+        }}
+        onSave={handleSavePrompt}
+      />
 
       {toast && <div className="toast"><Icon name="check" size={17} />{toast}</div>}
     </main>

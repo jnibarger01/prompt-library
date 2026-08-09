@@ -453,6 +453,91 @@ select:hover { border-color: var(--line); }
   .modal-footer button { flex: 1; }
   .toast { right: 14px; bottom: 14px; left: 14px; justify-content: center; }
 }
+/* ---------------------------------------------- add / edit prompt (Layer 1) */
+.header-button.primary { color: white; background: var(--accent); border-color: var(--accent); }
+.header-button.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
+
+.mine-badge {
+  margin-left: 7px;
+  padding: 2px 6px;
+  color: var(--ink);
+  background: var(--surface-muted);
+  border-radius: 999px;
+  font-style: normal;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
+.add-modal { width: min(720px, 100%); }
+.add-form { display: flex; flex-direction: column; gap: 18px; padding: 22px 26px; overflow: auto; }
+.add-form .field { display: flex; flex-direction: column; gap: 8px; }
+.add-form .field > span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.add-form input[type="text"], .add-form textarea, .add-form select {
+  width: 100%;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.94rem;
+}
+.add-form textarea { min-height: 180px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6; resize: vertical; }
+.add-form input:focus-visible, .add-form textarea:focus-visible, .add-form select:focus-visible { border-color: var(--accent); }
+.add-form small { color: var(--muted); font-size: 0.76rem; line-height: 1.5; }
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  color: var(--ink);
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.chip:hover { border-color: var(--accent); }
+.chip.selected { color: white; background: var(--accent); border-color: var(--accent); }
+.chip em {
+  font-style: normal;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
+.form-error {
+  margin: 0;
+  padding: 11px 13px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.owner-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-right: auto; }
+.secondary-button.danger { color: var(--accent-strong); }
+.secondary-button.danger:hover { border-color: var(--accent); }
+
+@media (max-width: 590px) {
+  .add-form { padding-left: 20px; padding-right: 20px; }
+  .owner-actions { width: 100%; margin-right: 0; }
+  .owner-actions button { flex: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
