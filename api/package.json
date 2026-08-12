@@ -1,0 +1,25 @@
+{
+  "name": "prompt-library-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PostgreSQL-backed API layer for the prompt library corpus. Independent from the static Next.js site.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "vitest run",
+    "db:migrate": "node scripts/migrate.js",
+    "db:seed": "node scripts/import-prompts.js",
+    "db:seed:force": "node scripts/import-prompts.js --force",
+    "db:check": "node scripts/check-db.js"
+  },
+  "dependencies": {
+    "fastify": "^5.2.0",
+    "pg": "^8.13.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  }
+}

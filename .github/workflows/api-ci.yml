@@ -1,0 +1,126 @@
+name: API CI
+
+# Dedicated workflow for the PostgreSQL-backed api/ service — separate from
+# deploy-pages.yml (which builds/deploys the static site) and
+# ingest-prompt.yml (which appends to data/prompts.json). Scoped with `paths`
+# so unrelated site-only changes don't spend Actions minutes running a full
+# Postgres service container for no reason.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api/**"
+      - "data/prompts.json"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/validate-data.mjs"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - "data/prompts.json"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/validate-data.mjs"
+      - ".github/workflows/api-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # A real PostgreSQL instance, not SQLite and not a mock — the same
+    # contract the api/ test suite requires locally via TEST_DATABASE_URL.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: prompt_library
+          POSTGRES_PASSWORD: prompt_library_ci
+          POSTGRES_DB: prompt_library_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # Two distinct databases on the same disposable service container:
+      #   prompt_library_test -> used exclusively by `npm test` (the api/
+      #     test suite requires TEST_DATABASE_URL itself and refuses to run
+      #     without it — see api/test/setup/*.js — so it never falls back
+      #     to DATABASE_URL even though both point at the same server here).
+      #   prompt_library      -> used by the db:migrate/db:seed/db:check CLI
+      #     commands, exercising the same path a real deploy would use,
+      #     kept separate so seeding it can never interact with the test
+      #     database's isolation guarantees.
+      # Both values are ephemeral, workflow-local credentials for a
+      # container that only exists for the lifetime of this job — not real
+      # secrets, never used outside CI.
+      TEST_DATABASE_URL: postgresql://prompt_library:prompt_library_ci@localhost:5432/prompt_library_test
+      DATABASE_URL: postgresql://prompt_library:prompt_library_ci@localhost:5432/prompt_library
+      PROMPT_API_KEY: ci-test-only-key
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install root dependencies (root package-lock.json)
+        run: npm ci
+
+      - name: Install API dependencies (api/package-lock.json)
+        working-directory: api
+        run: npm ci
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U prompt_library && exit 0
+            sleep 1
+          done
+          echo "PostgreSQL did not become ready in time" >&2
+          exit 1
+
+      - name: Create the migrate/seed verification database
+        run: |
+          PGPASSWORD=prompt_library_ci psql -h localhost -U prompt_library -d postgres \
+            -c "CREATE DATABASE prompt_library;"
+
+      - name: Apply migrations (DATABASE_URL)
+        working-directory: api
+        run: npm run db:migrate
+
+      - name: Seed the corpus (DATABASE_URL)
+        working-directory: api
+        run: npm run db:seed
+
+      - name: Verify seeded row count (expect 2,084)
+        working-directory: api
+        run: npm run db:check
+
+      # The api/ test suite manages TEST_DATABASE_URL's schema/seed data
+      # itself (test/setup/global-setup.js runs migrations + import against
+      # TEST_DATABASE_URL before any test file executes) — this is the real,
+      # unmocked PostgreSQL-backed suite, including migration/import
+      # determinism, idempotency, restart-persistence, and the source_order
+      # tie-break test.
+      - name: Run API test suite (TEST_DATABASE_URL, real PostgreSQL)
+        working-directory: api
+        run: npm test
+
+      - name: Root prompt corpus validation
+        run: npm run validate
+
+      - name: Root production build
+        run: npm run build
