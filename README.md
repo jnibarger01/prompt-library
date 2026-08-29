@@ -78,6 +78,12 @@ They stay in that one browser. Nothing is uploaded.
 
 ### Layer 2 — publishing to the shared library
 
+**One-time setup:** run the "Set up prompt-submission labels" workflow from the
+Actions tab. It creates the `add-prompt` and `approved-prompt` labels. Until it
+has been run, publishing is inert and silent — GitHub ignores labels named in an
+issue template that do not exist, and a label that does not exist cannot be
+applied from the label menu, so nothing triggers and nothing errors.
+
 "Publish" on one of your prompts opens a prefilled GitHub issue. A maintainer
 reviews it and applies the `approved-prompt` label, which runs
 `.github/workflows/ingest-prompt.yml`: it validates the submission, decides a
@@ -86,6 +92,11 @@ category, appends to both dataset copies, commits, and redeploys.
 The label gate is deliberate. Anyone can open an issue on a public repo, so
 without a human in the loop any stranger could commit content into a site you
 host under your own name.
+
+The submission is read from the event payload captured when the label was
+applied, not re-fetched afterwards — otherwise a submitter could edit the issue
+between approval and ingestion, and you would review one prompt and commit a
+different one.
 
 A push made with `GITHUB_TOKEN` does not start another workflow, so the ingest
 job calls `deploy-pages.yml` directly as a reusable workflow rather than
@@ -162,6 +173,7 @@ scripts/
   ISSUE_TEMPLATE/add-prompt.yml   Submission form
   workflows/deploy-pages.yml      Static export build and Pages deploy
   workflows/ingest-prompt.yml     Approved-submission ingestion
+  workflows/setup-labels.yml      One-time label creation for the above
 ```
 
 ## Notes

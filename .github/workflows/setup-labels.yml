@@ -1,0 +1,43 @@
+name: Set up prompt-submission labels
+
+# One-time (idempotent) setup for Layer 2.
+#
+# ingest-prompt.yml fires on the `approved-prompt` label, and the submission
+# form applies `add-prompt`. Neither is created automatically — GitHub ignores
+# labels named in an issue template that do not already exist, and a label that
+# does not exist cannot be picked from the label menu. Without them the whole
+# publish path is inert with no error anywhere, which is a miserable thing to
+# debug, so creating them is a workflow you can run rather than a manual step
+# someone has to remember.
+#
+# Run it from the Actions tab: "Set up prompt-submission labels" → Run workflow.
+# Safe to re-run; --force updates an existing label instead of failing.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Create labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create add-prompt \
+            --repo "$GITHUB_REPOSITORY" \
+            --color 0E8A16 \
+            --description "A prompt submitted through the Add a prompt form" \
+            --force
+
+          gh label create approved-prompt \
+            --repo "$GITHUB_REPOSITORY" \
+            --color 5319E7 \
+            --description "Reviewed and cleared to be added to the library — applying this runs the ingest" \
+            --force
+
+          echo "Labels ready. Applying approved-prompt to an add-prompt issue now runs the ingest."
