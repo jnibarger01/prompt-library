@@ -1,8 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const filePath = path.join(process.cwd(), "data", "prompts.json");
-const prompts = JSON.parse(fs.readFileSync(filePath, "utf8"));
+const filePaths = ["prompts.json", "opus55-prompts.json"].map((name) =>
+  path.join(process.cwd(), "data", name),
+);
+const prompts = filePaths.flatMap((filePath) =>
+  JSON.parse(fs.readFileSync(filePath, "utf8")),
+);
 const required = ["id", "title", "prompt", "category", "tags", "characters", "words"];
 const errors = [];
 const ids = new Set();
