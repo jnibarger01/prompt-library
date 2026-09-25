@@ -405,6 +405,8 @@ export default function PromptLibrary({ meta }) {
             <span>Sort</span>
             <select value={sort} onChange={(event) => setSort(event.target.value)}>
               <option value="relevance">Best match</option>
+              <option value="newest">Newest → Oldest</option>
+              <option value="oldest">Oldest → Newest</option>
               <option value="title">Title A–Z</option>
               <option value="shortest">Shortest first</option>
               <option value="longest">Longest first</option>
