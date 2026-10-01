@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const filePaths = ["prompts.json", "opus55-prompts.json"].map((name) =>
+const filePaths = ["prompts.json", "opus55-prompts.json", "jace-oneshot-prompts.json"].map((name) =>
   path.join(process.cwd(), "data", name),
 );
 const prompts = filePaths.flatMap((filePath) =>
