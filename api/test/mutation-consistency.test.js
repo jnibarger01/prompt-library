@@ -9,7 +9,7 @@ function authHeader() {
 }
 
 // Unique markers so these tests can't collide with anything in the real
-// 2,084-prompt corpus or with prompts created by other test files.
+// 2,312-prompt corpus or with prompts created by other test files.
 const UNIQUE_TOKEN = "zzzslice4token";
 const UNIQUE_CATEGORY = "Zzz Slice4 Test Category";
 const PATCHED_TOKEN = "zzzslice4patchedtoken";

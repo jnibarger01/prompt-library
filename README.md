@@ -1,6 +1,6 @@
 # Prompt Foundry
 
-A responsive Next.js and React prompt-library website built from the supplied collection of 2,084 prompts.
+A responsive Next.js and React prompt-library website built from the supplied collection of 2,312 prompts, including 105 REA investigation prompts imported from [JoasASantos/REA-Prompts](https://github.com/JoasASantos/REA-Prompts) (MIT-licensed; see [source notes](sources/REA-Prompts.md)).
 
 ## Features
 

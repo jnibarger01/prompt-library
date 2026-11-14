@@ -12,6 +12,9 @@ on:
     paths:
       - "api/**"
       - "data/prompts.json"
+      - "data/opus55-prompts.json"
+      - "data/jace-oneshot-prompts.json"
+      - "data/rea-prompts.json"
       - "package.json"
       - "package-lock.json"
       - "scripts/validate-data.mjs"
@@ -105,7 +108,7 @@ jobs:
         working-directory: api
         run: npm run db:seed
 
-      - name: Verify seeded row count (expect 2,084)
+      - name: Verify seeded row count (expect 2,312)
         working-directory: api
         run: npm run db:check
 

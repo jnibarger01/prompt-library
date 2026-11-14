@@ -91,7 +91,7 @@ export const searchQuerySchema = z
 
 /**
  * Bounds for mutation body fields, chosen by inspecting the existing corpus
- * (2,084 prompts) rather than picking arbitrary numbers:
+ * (2,312 prompts) rather than picking arbitrary numbers:
  *   - title:    observed max 191 chars, p99 ~82  -> cap at 300 (headroom, not corpus-breaking)
  *   - prompt:   observed max 144,268 chars        -> cap at 200,000 (comfortably above the largest existing prompt)
  *   - category: existing category-name cap already used by list/search is 100

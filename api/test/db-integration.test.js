@@ -78,14 +78,14 @@ describe("PostgreSQL migrations + corpus import (Slice 4)", () => {
     ).rejects.toThrow(/violates check constraint/);
   });
 
-  it("import loaded exactly the full corpus (2,084 prompts), preserving every id", async () => {
+  it("import loaded exactly the full corpus (2,312 prompts), preserving every id", async () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT id FROM prompts WHERE id = ANY($1::text[])",
       [corpusIds]
     );
     expect(rows.length).toBe(corpus.length);
-    expect(corpus.length).toBe(2084);
+    expect(corpus.length).toBe(2312);
     const dbIds = new Set(rows.map((r) => r.id));
     for (const id of corpusIds) {
       expect(dbIds.has(id)).toBe(true);

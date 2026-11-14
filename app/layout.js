@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Prompt Foundry — 2,084 AI Prompts",
+  title: "Prompt Foundry — 2,312 AI Prompts",
   description: "Search, save, inspect, and copy a curated library of AI prompts.",
 };
 

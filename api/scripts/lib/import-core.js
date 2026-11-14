@@ -5,17 +5,28 @@ import { measure } from "../../src/lib/prompt-derive.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// api/scripts/lib -> api/scripts -> api -> repo root -> data/prompts.json
-export const CORPUS_FILE = path.resolve(__dirname, "..", "..", "..", "data", "prompts.json");
+// api/scripts/lib -> api/scripts -> api -> repo root -> data/
+const dataDir = path.resolve(__dirname, "..", "..", "..", "data");
+export const CORPUS_FILES = [
+  "prompts.json",
+  "opus55-prompts.json",
+  "jace-oneshot-prompts.json",
+  "rea-prompts.json",
+].map((name) => path.join(dataDir, name));
 
-/** Reads + parses data/prompts.json. Throws with a clear message on any shape problem. */
-export function loadCorpusFile(filePath = CORPUS_FILE) {
-  const raw = fs.readFileSync(filePath, "utf8");
-  const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed)) {
-    throw new Error("data/prompts.json must contain a JSON array.");
-  }
-  return parsed;
+// Retain the primary corpus path for callers that need the original file.
+export const CORPUS_FILE = CORPUS_FILES[0];
+
+/** Reads + parses every shipped prompt pack, or one explicit file when supplied. */
+export function loadCorpusFile(filePath) {
+  const paths = filePath ? [filePath] : CORPUS_FILES;
+  return paths.flatMap((sourcePath) => {
+    const parsed = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${sourcePath} must contain a JSON array.`);
+    }
+    return parsed;
+  });
 }
 
 /** Validates the fields the import needs. Returns a list of error strings (empty = valid). */

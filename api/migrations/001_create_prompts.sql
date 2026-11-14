@@ -2,7 +2,7 @@
 --
 -- source_order provides explicit, deterministic ordering independent of
 -- PostgreSQL's unspecified physical row order. The import script assigns
--- source_order = original array index for the shipped corpus (0..2083);
+-- source_order = original array index for the shipped corpus (0..2311);
 -- prompts_source_order_seq assigns strictly increasing values to prompts
 -- created afterwards via POST /v1/prompts, so newly created rows always
 -- sort after the imported corpus and after each other in creation order.
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS prompts (
 -- Query patterns this needs to serve efficiently, per the accepted API:
 --   GET /v1/prompts?category=...   -> filter by category, order by source_order
 --   GET /v1/prompts (list/search)  -> order by source_order for every page
--- 2,084 rows doesn't strictly need either index yet, but both are cheap,
+-- 2,312 rows doesn't strictly need either index yet, but both are cheap,
 -- narrow, and map directly to real query predicates already in use — no
 -- speculative indexing (no trigram/full-text/vector indexes).
 CREATE INDEX IF NOT EXISTS idx_prompts_category ON prompts (category);

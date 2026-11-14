@@ -1,5 +1,5 @@
 /**
- * Trains the category suggester from the labelled prompts in data/prompts.json
+ * Trains the category suggester from every labelled prompt pack in data/
  * and writes lib/category-model.json.
  *
  * Model: multinomial naive Bayes over a vocabulary pruned by mutual information.
@@ -8,7 +8,7 @@
  * bundle into the page, and it is a plain dictionary lookup at scoring time so
  * it runs in the browser with no dependencies.
  *
- * Run after changing data/prompts.json:
+ * Run after changing any shipped data/*.json prompt pack:
  *   node scripts/train-categorizer.mjs
  *
  * The accuracy printed at the end is measured on a held-out fifth of the corpus
@@ -24,7 +24,12 @@ const VOCABULARY_SIZE = 1500;
 const MIN_DOCUMENT_FREQUENCY = 3;
 
 const root = process.cwd();
-const prompts = JSON.parse(fs.readFileSync(path.join(root, "data", "prompts.json"), "utf8"));
+const promptFiles = ["prompts.json", "opus55-prompts.json", "jace-oneshot-prompts.json", "rea-prompts.json"].map((name) =>
+  path.join(root, "data", name),
+);
+const prompts = promptFiles.flatMap((filePath) =>
+  JSON.parse(fs.readFileSync(filePath, "utf8")),
+);
 
 /** Deterministic stratified split, so repeated runs are comparable. */
 function split(items) {
