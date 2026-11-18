@@ -12,6 +12,39 @@ import {
 import { buildFallbackText, openIssueForm } from "@/lib/publish";
 import AddPromptDialog from "@/components/add-prompt-dialog";
 
+const ENGINEERING_WORKFLOWS = [
+  {
+    "title": "Architecture & Planning",
+    "description": "PRDs, ADRs, system design, production roadmaps",
+    "query": "architecture"
+  },
+  {
+    "title": "Autonomous Execution",
+    "description": "Claude Code, Codex, Hermes, agent delegation",
+    "query": "agent"
+  },
+  {
+    "title": "ACS & Governance",
+    "description": "Executor authority, isolation, leases, approvals",
+    "query": "security"
+  },
+  {
+    "title": "Verification & Release",
+    "description": "Testing, adversarial review, CI, certification",
+    "query": "testing"
+  },
+  {
+    "title": "Infrastructure & MCP",
+    "description": "Linux services, bridges, gateways, recovery",
+    "query": "mcp"
+  },
+  {
+    "title": "Reverse Engineering",
+    "description": "ARES, REA, Ghidra, investigation workflows",
+    "query": "reverse engineering"
+  }
+];
+
 const PAGE_SIZE = 24;
 const FAVORITES_KEY = "prompt-foundry:favorites";
 const THEME_KEY = "prompt-foundry:theme";
@@ -376,7 +409,41 @@ export default function PromptLibrary({ meta }) {
         </aside>
       </section>
 
-      <section className="controls" aria-label="Prompt library controls">
+      <section className="engineering-collection" aria-labelledby="engineering-heading">
+        <div className="engineering-heading">
+          <div>
+            <p className="eyebrow">Curated workflow paths</p>
+            <h2 id="engineering-heading">Jace Engineering Stack</h2>
+            <p>Six focused entry points into the existing prompt catalog. Choose a workflow to search relevant prompts.</p>
+          </div>
+          <span className="engineering-kicker">ENGINEERING / 06</span>
+        </div>
+        <div className="engineering-grid">
+          {ENGINEERING_WORKFLOWS.map((workflow, index) => (
+            <button
+              key={workflow.title}
+              type="button"
+              className="engineering-card"
+              onClick={() => {
+                setQuery(workflow.query);
+                setDebouncedQuery(workflow.query);
+                setCategory("All");
+                setFavoritesOnly(false);
+                setSort("relevance");
+                document.getElementById("catalog-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              aria-label={`Explore ${workflow.title} prompts`}
+            >
+              <span className="engineering-number">{String(index + 1).padStart(2, "0")}</span>
+              <strong>{workflow.title}</strong>
+              <span className="engineering-description">{workflow.description}</span>
+              <span className="engineering-action">Explore prompts <Icon name="arrow" size={16} /></span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="controls" id="catalog-heading" aria-label="Prompt library controls">
         <label className="search-box">
           <Icon name="search" size={21} />
           <input
