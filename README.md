@@ -1,6 +1,6 @@
 # Prompt Foundry
 
-A responsive Next.js and React prompt-library website built from the supplied collection of 2,312 prompts, including 105 REA investigation prompts imported from [JoasASantos/REA-Prompts](https://github.com/JoasASantos/REA-Prompts) (MIT-licensed; see [source notes](sources/REA-Prompts.md)) and 52 Claude Code prompts from the [Claude Code prompt library](https://code.claude.com/docs/en/prompt-library) (see [source notes](sources/Claude-Code-Prompt-Library.md)).
+A responsive Next.js and React prompt-library website built from the supplied collection of 2,364 prompts, including 105 REA investigation prompts imported from [JoasASantos/REA-Prompts](https://github.com/JoasASantos/REA-Prompts) (MIT-licensed; see [source notes](sources/REA-Prompts.md)) and 52 Claude Code prompts from the [Claude Code prompt library](https://code.claude.com/docs/en/prompt-library) (see [source notes](sources/Claude-Code-Prompt-Library.md)).
 
 ## Features
 
