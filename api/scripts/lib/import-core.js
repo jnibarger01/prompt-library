@@ -12,6 +12,7 @@ export const CORPUS_FILES = [
   "opus55-prompts.json",
   "jace-oneshot-prompts.json",
   "rea-prompts.json",
+  "claude-code-prompts.json",
 ].map((name) => path.join(dataDir, name));
 
 // Retain the primary corpus path for callers that need the original file.

@@ -24,7 +24,7 @@ const VOCABULARY_SIZE = 1500;
 const MIN_DOCUMENT_FREQUENCY = 3;
 
 const root = process.cwd();
-const promptFiles = ["prompts.json", "opus55-prompts.json", "jace-oneshot-prompts.json", "rea-prompts.json"].map((name) =>
+const promptFiles = ["prompts.json", "opus55-prompts.json", "jace-oneshot-prompts.json", "rea-prompts.json", "claude-code-prompts.json"].map((name) =>
   path.join(root, "data", name),
 );
 const prompts = promptFiles.flatMap((filePath) =>
