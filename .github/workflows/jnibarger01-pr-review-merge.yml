@@ -93,6 +93,21 @@ jobs:
             exit 1
           fi
 
+          # Identify this exact check, not every check sharing its display name.
+          # GitHub Actions job IDs are check-run database IDs. Fail closed if
+          # the current job cannot be identified uniquely.
+          own_checks="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs" --paginate \
+            --jq '.jobs[] | select(.name == "PR review and merge gate" and .status == "in_progress") | .id')"
+          if [[ "$(printf '%s\n' "$own_checks" | sed '/^$/d' | wc -l)" -ne 1 || ! "$own_checks" =~ ^[0-9]+$ ]]; then
+            echo "Unable to identify this gate's unique check run; refusing to merge." >&2
+            exit 1
+          fi
+          own_check_id="$(gh api "repos/$GITHUB_REPOSITORY/check-runs/$own_checks" --jq '.node_id')"
+          if [[ -z "$own_check_id" || "$own_check_id" == "null" ]]; then
+            echo "Unable to resolve this gate's check-run node ID; refusing to merge." >&2
+            exit 1
+          fi
+
           ready=false
           last_reason="waiting for review/check state"
 
@@ -136,9 +151,9 @@ jobs:
                                   __typename
                                   ... on CheckRun {
                                     name
+                                    id
                                     status
                                     conclusion
-                                    app { slug }
                                   }
                                   ... on StatusContext {
                                     context
@@ -195,11 +210,11 @@ jobs:
                         and (.commit.oid // "") == $sha)]
               | length' <<<"$snapshot")"
 
-            pending_checks="$(jq '
+            pending_checks="$(jq --arg own_check_id "$own_check_id" '
               [.data.repository.pullRequest.commits.nodes[0].commit.statusCheckRollup.contexts.nodes[]?
                | select(
                    (.__typename == "CheckRun"
-                    and .name != "PR review and merge gate"
+                    and .id != $own_check_id
                     and .status != "COMPLETED")
                    or
                    (.__typename == "StatusContext"
@@ -207,11 +222,11 @@ jobs:
                  )]
               | length' <<<"$snapshot")"
 
-            failed_checks="$(jq '
+            failed_checks="$(jq --arg own_check_id "$own_check_id" '
               [.data.repository.pullRequest.commits.nodes[0].commit.statusCheckRollup.contexts.nodes[]?
                | select(
                    (.__typename == "CheckRun"
-                    and .name != "PR review and merge gate"
+                    and .id != $own_check_id
                     and .status == "COMPLETED"
                     and ((.conclusion // "") != "SUCCESS")
                     and ((.conclusion // "") != "NEUTRAL")

@@ -1,0 +1,27 @@
+name: Merge gate tests
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/jnibarger01-pr-review-merge.yml
+      - .github/workflows/merge-gate-tests.yml
+      - tests/test_merge_gate.py
+      - tests/test_merge_gate_lookup.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/jnibarger01-pr-review-merge.yml
+      - .github/workflows/merge-gate-tests.yml
+      - tests/test_merge_gate.py
+      - tests/test_merge_gate_lookup.py
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Merge gate regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m unittest discover -s tests -v
